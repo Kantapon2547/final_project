@@ -1,21 +1,53 @@
-# try wrapping the code below that reads a persons.csv file in a class and make it more general such that it can read in any csv file
+import csv
 
-import csv, os
 
-__location__ = os.path.realpath(
-    os.path.join(os.getcwd(), os.path.dirname(__file__)))
+class CsvReader:
+    def __init__(self, file_path):
+        self.file_path = file_path
 
-persons = []
-with open(os.path.join(__location__, 'persons.csv')) as f:
-    rows = csv.DictReader(f)
-    for r in rows:
-        persons.append(dict(r))
-print(persons)
+    def read_csv(self):
+        data = []
+        with open(self.file_path) as f:
+            rows = csv.DictReader(f)
+            for r in rows:
+                data.append(dict(r))
+        return data
 
-# add in code for a Database class
 
-# add in code for a Table class
+class Table:
+    def __init__(self, name):
+        self.name = name
+        self.entries = []
 
-# modify the code in the Table class so that it supports the insert operation where an entry can be added to a list of dictionary
+    def insert(self, entry):
+        self.entries.append(entry)
 
-# modify the code in the Table class so that it supports the update operation where an entry's value associated with a key can be updated
+    def update(self, entry_id, key, new_value):
+        for entry in self.entries:
+            if entry.get('ID') == entry_id:
+                entry[key] = new_value
+                break
+
+
+class Database:
+    def __init__(self):
+        self.tables = {}
+
+    def add_table(self, table_name, table_instance):
+        self.tables[table_name] = table_instance
+
+    def get_table(self, table_name):
+        return self.tables.get(table_name)
+
+
+csv_file_path = 'persons.csv'
+csv_reader = CsvReader(file_path=csv_file_path)
+persons_data = csv_reader.read_csv()
+
+database = Database()
+persons_table = Table(name='persons')
+
+for person in persons_data:
+    persons_table.insert(person)
+
+database.add_table('persons', persons_table)

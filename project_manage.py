@@ -1,61 +1,102 @@
-# import database module
+import sys
 
-# define a funcion called initializing
+from database import Database
+import csv
+
+database_instance = Database()
+
+
+class CsvReader:
+    @staticmethod
+    def read_csv(filename):
+        data = []
+        with open(filename, 'r') as file:
+            csv_reader = csv.DictReader(file)
+            for row in csv_reader:
+                data.append(dict(row))
+        return data
+
+
+class Persons:
+    def __init__(self):
+        self.person_data = []
+
+    def add_person(self, person_data):
+        self.person_data.append(person_data)
+
+
+class Login:
+    def __init__(self):
+        self.login_data = []
+
+    def add_login(self, person_id, username, password, user_role):
+        login_entry = {"person_id": person_id, "username": username, "password": password, "role": user_role}
+        self.login_data.append(login_entry)
+
+    def __str__(self):
+        return ""
+
 
 def initializing():
-    pass
+    persons_table = Persons()
+    persons_data = CsvReader().read_csv('persons.csv')
+    for person in persons_data:
+        persons_table.add_person(person)
 
-# here are things to do in this function:
+    login_table_instance = Login()
+    login_data = CsvReader().read_csv('login.csv')
 
-    # create an object to read all csv files that will serve as a persistent state for this program
+    for login_entry in login_data:
+        person_id = login_entry['person_id']
+        username = login_entry['username']
+        password = login_entry['password']
+        user_role = login_entry['role']
 
-    # create all the corresponding tables for those csv files
+        login_table_instance.add_login(person_id, username, password, user_role)
 
-    # see the guide how many tables are needed
-
-    # add all these tables to the database
-
-
-# define a funcion called login
-
-def login():
-    pass
-
-# here are things to do in this function:
-   # add code that performs a login task
-        # ask a user for a username and password
-        # returns [ID, role] if valid, otherwise returning None
-
-# define a function called exit
-def exit():
-    pass
-
-# here are things to do in this function:
-   # write out all the tables that have been modified to the corresponding csv files
-   # By now, you know how to read in a csv file and transform it into a list of dictionaries. For this project, you also need to know how to do the reverse, i.e., writing out to a csv file given a list of dictionaries. See the link below for a tutorial on how to do this:
-   
-   # https://www.pythonforbeginners.com/basics/list-of-dictionaries-to-csv-in-python
+    return login_table_instance
 
 
-# make calls to the initializing and login functions defined above
+def login(logins_table):
+    max_attempts = 3
+    attempts = 0
 
-initializing()
-val = login()
+    while attempts < max_attempts:
+        username = input("Enter your username: ")
+        password = input("Enter your password: ")
 
-# based on the return value for login, activate the code that performs activities according to the role defined for that person_id
+        for entry in logins_table.login_data:
+            if entry['username'] == username and entry['password'] == password:
+                result = [entry['person_id'], entry['role']]
+                print(f"Login successful! User ID: {result[0]}, Role: {result[1]}")
+                return result
 
-# if val[1] = 'admin':
-    # see and do admin related activities
-# elif val[1] = 'student':
-    # see and do student related activities
-# elif val[1] = 'member':
-    # see and do member related activities
-# elif val[1] = 'lead':
-    # see and do lead related activities
-# elif val[1] = 'faculty':
-    # see and do faculty related activities
-# elif val[1] = 'advisor':
-    # see and do advisor related activities
+        print("Invalid login user ID or password. Please try again.")
+        attempts += 1
+    print("Too many unsuccessful login attempts. Exiting the program.")
+    exit_program()
 
-# once everyhthing is done, make a call to the exit function
-exit()
+
+def exit_program():
+    sys.exit()
+
+
+# Make calls to the initializing and login functions defined above
+login_table = initializing()
+val = login(login_table)
+
+if val:
+    if val[1] == 'admin':
+        print("Admin activities")
+    elif val[1] == 'student':
+        print("Student activities")
+    elif val[1] == 'member':
+        print("Member activities")
+    elif val[1] == 'lead':
+        print("Lead activities")
+    elif val[1] == 'faculty':
+        print("Faculty activities")
+    elif val[1] == 'advisor':
+        print("Advisor activities")
+# Once everything is done, make a call to the exit function
+exit_program()
