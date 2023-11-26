@@ -4,49 +4,41 @@
 
 ## `project_manage.py`
 
-### Classes
+## General Tasks
+- Define and implement role-based activities functions. 
+- Add necessary database interactions and logic to role-based activities.
 
-#### `CsvReader`
-- Consider adding error handling for file reading.
+## Admin Activities
+- Implement admin-related functionality for managing the database.
+- Allow admin to update all tables in the database.
 
-#### `CsvWriter`
-- Consider adding error handling for file writing.
+## Student Activities
+- Implement student-related functionality.
+- Allow students to respond to invitational messages.
+- Allow students to view and modify their project details.
 
-#### `Persons`
-- Add methods or functionalities related to persons.
+## Lead Student Activities
+- Implement lead student-related functionality.
+- Allow lead students to create a project, find members, and form a group. 
+- Enable lead students to send invitational messages to potential members.
+- Allow lead students to send request messages to potential advisors.
+- Implement the submission of the final project report.
 
-#### `Login`
-- Add methods or functionalities related to logins.
+## Member Student Activities
+- Implement member student-related functionality.
+- Allow member students to view and modify their project details.
 
-### Functions
+## Normal Faculty Activities
+- Implement normal faculty-related functionality.
+- Allow normal faculty to see requests to be a supervisor.
+- Enable normal faculty to send responses denying to serve as an advisor.
+- Allow normal faculty to see details of all projects.
+- Implement the evaluation of projects (details in proposal).
 
-#### `initializing`
-- Consider expanding this function to initialize other tables if needed.
-
-#### `login`
-- Add user authentication logic.
-- Consider implementing account lockout or other security measures.
-
-#### `exit`
-- Consider adding more cleanup or exit-related logic.
-
----
-
-## `database.py`
-
-### Classes
-
-#### `CsvReader`
-- Consider adding error handling for file reading.
-
-#### `Database`
-- Add methods or functionalities related to database operations.
-
-#### `Table`
-- Consider adding methods for table operations.
-
-### Initialization
-- Consider initializing other tables if needed.
-
-### Integration
-- Implement more sophisticated integration between `CsvReader`, `Database`, and `Table` classes.
+## Advising Faculty Activities
+- Implement advising faculty-related functionality.
+- Allow advising faculty to see requests to be a supervisor.
+- Enable advising faculty to send accept or deny responses.
+- Allow advising faculty to see details of all projects.
+- Implement the evaluation of projects (details in proposal).
+- Allow advising faculty to approve projects.
