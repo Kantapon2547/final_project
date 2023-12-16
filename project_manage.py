@@ -322,8 +322,9 @@ class Admin:
 
 
 class Student:
-    def __init__(self):
+    def __init__(self, login_data):
         self.project_manager = Project()
+        self.login_data = login_data
 
     def perform_activities(self, project_id, student_id):
         print("1. View Project Details")
@@ -343,13 +344,12 @@ class Student:
         elif choice == '3':
             self.view_member_requests()
         elif choice == '4':
-            # Prompt the student to enter the project title and lead ID
             project_title = input("Enter the project title: ")
             lead_id = input("Enter the lead ID: ")
 
             # Create a new project and become a lead
-            leads = Lead()
-            leads.create_project_and_become_lead(project_title, lead_id)
+            lead = Lead(login_table)
+            lead.create_project_and_become_lead(project_title, lead_id)
 
             # Add other lead activities as needed
         elif choice == '5':
@@ -368,103 +368,21 @@ class Lead:
         lead_id = self.get_lead_id()
         self.project_manager.create_project(project_title, lead_id)
 
-    def create_project_and_become_lead(self):
-        project_title = input("Enter the project title: ")
-        lead_id = self.get_lead_id()
-
-        # Deny all existing member requests (Assuming member_request is part of Project class)
+    def create_project_and_become_lead(self, project_title, student_id):
+        # Deny all existing member requests
         for request in self.project_manager.member_request:
             if request.project_id not in self.project_manager.project_table:
                 self.project_manager.member_request.remove(request)
                 print(f"Existing member request for Project {request.project_id} denied.")
 
         # Create a new project
-        self.project_manager.create_project(project_title, lead_id)
+        self.project_manager.create_project(project_title, student_id)
 
         # Add the student as the lead
         project_id = len(self.project_manager.project_table)
         project = self.project_manager.get_project(project_id)
-        project['Lead'] = lead_id
-        print(f"New project created: {project_title}. {lead_id} is the lead.")
-
-    def get_lead_id(self):
-        username = input("Enter your username: ")
-        for entry in self.login_data:
-            if entry['username'] == username and entry['role'] == 'lead':
-                return entry.get('lead_id', None)
-        print("Lead ID not found for the given username and role.")
-        return None
-
-    def add_members_to_project(self):
-        project_id = input("Enter the project ID: ")
-        members = input("Enter member IDs (comma-separated): ").split(',')
-        self.project_manager.add_members_to_project(project_id, members)
-
-    def see_and_modify_project_details(self):
-        project_id = input("Enter the project ID: ")
-        lead_id = self.get_lead_id()
-        project = self.project_manager.get_project(project_id)
-
-        if project and project['Lead'] == lead_id:
-            print("Current Project Details:")
-            print(f"Project ID: {project['ProjectID']}")
-            print(f"Title: {project['Title']}")
-            print(f"Lead: {project['Lead']}")
-            print(f"Advisor: {project['Advisor']}")
-            print(f"Status: {project['Status']}")
-            print("----------")
-
-            # Your logic to modify project details goes here
-            new_title = input("Enter the new project title: ")
-            new_status = input("Enter the new project status: ")
-            self.project_manager.modify_project_details(project_id, new_title, new_status)
-        else:
-            print("Project not found or you are not the lead of the project.")
-
-    def send_request_messages_to_advisors(self):
-        project_id = input("Enter the project ID: ")
-        advisor_ids = input("Enter advisor IDs (comma-separated): ").split(',')
-        self.project_manager.send_request_messages_to_advisors(project_id, advisor_ids)
-
-    def submit_final_project_report(self):
-        project_id = input("Enter the project ID: ")
-        lead_id = self.get_lead_id()
-        project = self.project_manager.get_project(project_id)
-        if project and project['Lead'] == lead_id:
-            # Your logic to submit the final project report goes here
-            print("Final project report submitted.")
-        else:
-            print("Project not found or you are not the lead of the project.")
-
-
-class Lead:
-    def __init__(self, login_data):
-        self.project_manager = Project()
-        self.login_data = login_data
-
-    def create_project(self):
-        project_title = input("Enter the project title: ")
-        lead_id = self.get_lead_id()
-        self.project_manager.create_project(project_title, lead_id)
-
-    def create_project_and_become_lead(self):
-        project_title = input("Enter the project title: ")
-        lead_id = self.get_lead_id()
-
-        # Deny all existing member requests (Assuming member_request is part of Project class)
-        for request in self.project_manager.member_request:
-            if request.project_id not in self.project_manager.project_table:
-                self.project_manager.member_request.remove(request)
-                print(f"Existing member request for Project {request.project_id} denied.")
-
-        # Create a new project
-        self.project_manager.create_project(project_title, lead_id)
-
-        # Add the student as the lead
-        project_id = len(self.project_manager.project_table)
-        project = self.project_manager.get_project(project_id)
-        project['Lead'] = lead_id
-        print(f"New project created: {project_title}. {lead_id} is the lead.")
+        project['Lead'] = student_id
+        print(f"New project created: {project_title}. {student_id} is the lead.")
 
     def get_lead_id(self):
         username = input("Enter your username: ")
@@ -684,7 +602,7 @@ if val:
             admin_instance.update_tables()
         elif user_role.lower() == 'student' and user_id:
             print("Student activities")
-            student = Student()
+            student = Student(login_table)
             student.perform_activities(project_id_to_use, user_id)
         elif user_role.lower() == 'member':
             print("Member activities")
