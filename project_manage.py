@@ -36,27 +36,18 @@ class Persons:
 class Login:
     def __init__(self):
         self.login_data = []
-
-    def save_to_csv(self, filename):
-        with open(filename, 'w', newline='') as file:
-            fieldnames = ['person_id', 'username', 'password', 'role']
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
-
-            if file.tell() == 0:
-                writer.writeheader()
-
-            for entry in self.login_data:
-                writer.writerow(entry)
+        self.database_instance = database_instance
 
     def add_login(self, person_id, username, password, role):
         login_entry = {"person_id": person_id, "username": username, "password": password, "role": role}
         self.login_data.append(login_entry)
-        self.save_to_csv('data.csv')
+        self.database_instance.insert_data('login_table', login_entry)
 
 
 def initializing():
     person_table = Persons()
     persons_data = CsvReader().read_csv('persons.csv')
+
     for person in persons_data:
         person_table.add_person(person)
 
@@ -110,9 +101,9 @@ class AdvisorPendingRequest:
 
 
 class MemberPendingRequest:
-    def __init__(self, project_id, to_be_advisor, response=None, response_data=None):
+    def __init__(self, project_id, to_be_member, response=None, response_data=None):
         self.project_id = project_id
-        self.to_be_advisor = to_be_advisor
+        self.to_be_member = to_be_member
         self.response = response
         self.response_data = response_data
 
@@ -270,93 +261,150 @@ class Project:
 
 
 class Admin:
-    def __init__(self, database_instance):
-        self.database_instance = database_instance
+    def __init__(self, person_database_instance, login_database_instance):
+        self.person_database_instance = person_database_instance
+        self.login_database_instance = login_database_instance
 
     def manage_database(self):
         print("Admin is managing the database.")
-        self.database_instance.create_table('new_table', ['column1', 'column2'])
-        self.database_instance.insert_data('new_table', {'column1': 'value1', 'column2': 'value2'})
+        # Assuming create_table and insert_data methods are available in both instances
+        self.person_database_instance.create_table('new_table', ['column1', 'column2'])
+        self.person_database_instance.insert_data('new_table', {'column1': 'value1', 'column2': 'value2'})
 
     def update_tables(self):
         print("Admin is updating tables.")
-        data = self.read_csv('data.csv')
 
-        for row in data:
-            # Check if 'ProjectID' key exists in the row
+        # Assuming you have a method to read data from the CSV file
+        person_data = self.read_data_from_csv('persons.csv')  # Update the CSV file name
+
+        if person_data is None:
+            print("Error reading data from 'persons.csv'.")
+            return
+
+        for row in person_data:
             if 'ProjectID' in row:
                 project_id = row['ProjectID']
-                # Get lead and advisor information from the admin
                 leader = input("Enter lead for Project {}: ".format(project_id))
                 advisor = input("Enter advisor for Project {}: ".format(project_id))
 
-                # Update the row with the new values
                 row['Lead'] = leader
                 row['Advisor'] = advisor
 
-        self.write_csv('data.csv', data)
+        # Assuming you have a method to write data to the database
+        self.write_data_to_database('persons', person_data)
 
-    def read_csv(self, filename):
+    # Add a method to read data from the CSV file
+    @staticmethod
+    def read_data_from_csv(file_path):
         data = []
-        with open(filename, 'r') as file:
-            csv_reader = csv.DictReader(file)
-            for row in csv_reader:
-                data.append(dict(row))
+        try:
+            with open(file_path, 'r') as csv_file:
+                csv_reader = csv.DictReader(csv_file)
+                for row in csv_reader:
+                    data.append(dict(row))
+        except FileNotFoundError:
+            print(f"Error: File '{file_path}' not found.")
+            return None
         return data
 
-    def write_csv(self, filename, data):
-        with open(filename, 'w', newline='') as file:
-            fieldnames = data[0].keys() if data else []
-            writer = csv.DictWriter(file, fieldnames=fieldnames)
+    @staticmethod
+    def delete_data(self, project_id):
+        print(f"Admin is deleting data for Project {project_id}.")
+        # Implement the logic to delete data based on project_id in both databases
+        # For example: self.person_database_instance.delete_data('persons', {'ProjectID': project_id})
+        #              self.login_database_instance.delete_data('login', {'ProjectID': project_id})
 
-            # Write header if the file is empty
-            if file.tell() == 0:
-                writer.writeheader()
+    def read_data_from_database(self, table_name):
+        return self.person_database_instance.get_table(table_name)  # Update the table name
 
-            # Write modified data
-            writer.writerows(data)
+    def write_data_to_database(self, table_name, data):
+        self.person_database_instance.update_table(table_name, data)  # Update the table name
 
 
 class Student:
     def __init__(self):
         self.project_manager = Project()
 
-    def perform_activities(self, project_id_local1, user_id_1):
-        pending_requests = self.project_manager.member_request
+    def perform_activities(self, project_id, student_id):
+        print("1. View Project Details")
+        print("2. Modify Project Details")
+        print("3. View Member Requests")
+        print("4. Send Member Requests")
+        print("5. Exit")
 
-        if pending_requests:
-            print("Pending Member Request:")
-            for request in pending_requests:
-                print(f"Project ID: {request.project_id}, Request From: {request.to_be_member}")
+        choice = input("Enter your choice (1-5): ")
+
+        if choice == '1':
+            self.view_project_details()
+        elif choice == '2':
+            new_title = input("Enter the new project title: ")
+            new_status = input("Enter the new project status: ")
+            self.modify_project_details(project_id, new_title, new_status)
+        elif choice == '3':
+            self.view_member_requests()
+        elif choice == '4':
+            # Prompt the student to enter the project title and lead ID
+            project_title = input("Enter the project title: ")
+            lead_id = input("Enter the lead ID: ")
+
+            # Create a new project and become a lead
+            leads = Lead()
+            leads.create_project_and_become_lead(project_title, lead_id)
+
+            # Add other lead activities as needed
+        elif choice == '5':
+            exit_program()
         else:
-            print("No pending member requests.")
-
-        self.project_manager.send_member_requests(user_id_1)
+            print("Invalid choice. Please enter a number between 1 and 5.")
 
 
 class Lead:
-    def __init__(self):
+    def __init__(self, login_data):
         self.project_manager = Project()
+        self.login_data = login_data
 
-    def create_project(self, project_title, lead_id):
+    def create_project(self):
+        project_title = input("Enter the project title: ")
+        lead_id = self.get_lead_id()
         self.project_manager.create_project(project_title, lead_id)
 
-    def find_members(self):
-        # Your logic to find potential members goes here
-        potential_members = ['potential_member1', 'potential_member2']
-        return potential_members
+    def create_project_and_become_lead(self):
+        project_title = input("Enter the project title: ")
+        lead_id = self.get_lead_id()
 
-    def send_invitational_messages(self, potential_members):
-        # Your logic to send invitational messages goes here
-        for member in potential_members:
-            print(f"Invitation sent to {member}.")
+        # Deny all existing member requests (Assuming member_request is part of Project class)
+        for request in self.project_manager.member_request:
+            if request.project_id not in self.project_manager.project_table:
+                self.project_manager.member_request.remove(request)
+                print(f"Existing member request for Project {request.project_id} denied.")
 
-    def add_members_to_project(self, project_id, members):
-        for member in members:
-            self.project_manager.add_member(project_id, member)
+        # Create a new project
+        self.project_manager.create_project(project_title, lead_id)
 
-    def see_and_modify_project_details(self, project_id, lead_id):
+        # Add the student as the lead
+        project_id = len(self.project_manager.project_table)
         project = self.project_manager.get_project(project_id)
+        project['Lead'] = lead_id
+        print(f"New project created: {project_title}. {lead_id} is the lead.")
+
+    def get_lead_id(self):
+        username = input("Enter your username: ")
+        for entry in self.login_data:
+            if entry['username'] == username and entry['role'] == 'lead':
+                return entry.get('lead_id', None)
+        print("Lead ID not found for the given username and role.")
+        return None
+
+    def add_members_to_project(self):
+        project_id = input("Enter the project ID: ")
+        members = input("Enter member IDs (comma-separated): ").split(',')
+        self.project_manager.add_members_to_project(project_id, members)
+
+    def see_and_modify_project_details(self):
+        project_id = input("Enter the project ID: ")
+        lead_id = self.get_lead_id()
+        project = self.project_manager.get_project(project_id)
+
         if project and project['Lead'] == lead_id:
             print("Current Project Details:")
             print(f"Project ID: {project['ProjectID']}")
@@ -373,12 +421,93 @@ class Lead:
         else:
             print("Project not found or you are not the lead of the project.")
 
-    def send_request_messages_to_advisors(self, project_id, advisor_ids):
-        # Your logic to send request messages to advisors goes here
-        for advisor_id in advisor_ids:
-            print(f"Request sent to advisor {advisor_id} for Project {project_id}.")
+    def send_request_messages_to_advisors(self):
+        project_id = input("Enter the project ID: ")
+        advisor_ids = input("Enter advisor IDs (comma-separated): ").split(',')
+        self.project_manager.send_request_messages_to_advisors(project_id, advisor_ids)
 
-    def submit_final_project_report(self, project_id, lead_id):
+    def submit_final_project_report(self):
+        project_id = input("Enter the project ID: ")
+        lead_id = self.get_lead_id()
+        project = self.project_manager.get_project(project_id)
+        if project and project['Lead'] == lead_id:
+            # Your logic to submit the final project report goes here
+            print("Final project report submitted.")
+        else:
+            print("Project not found or you are not the lead of the project.")
+
+
+class Lead:
+    def __init__(self, login_data):
+        self.project_manager = Project()
+        self.login_data = login_data
+
+    def create_project(self):
+        project_title = input("Enter the project title: ")
+        lead_id = self.get_lead_id()
+        self.project_manager.create_project(project_title, lead_id)
+
+    def create_project_and_become_lead(self):
+        project_title = input("Enter the project title: ")
+        lead_id = self.get_lead_id()
+
+        # Deny all existing member requests (Assuming member_request is part of Project class)
+        for request in self.project_manager.member_request:
+            if request.project_id not in self.project_manager.project_table:
+                self.project_manager.member_request.remove(request)
+                print(f"Existing member request for Project {request.project_id} denied.")
+
+        # Create a new project
+        self.project_manager.create_project(project_title, lead_id)
+
+        # Add the student as the lead
+        project_id = len(self.project_manager.project_table)
+        project = self.project_manager.get_project(project_id)
+        project['Lead'] = lead_id
+        print(f"New project created: {project_title}. {lead_id} is the lead.")
+
+    def get_lead_id(self):
+        username = input("Enter your username: ")
+        for entry in self.login_data:
+            if entry['username'] == username and entry['role'] == 'lead':
+                return entry.get('lead_id', None)
+        print("Lead ID not found for the given username and role.")
+        return None
+
+    def add_members_to_project(self):
+        project_id = input("Enter the project ID: ")
+        members = input("Enter member IDs (comma-separated): ").split(',')
+        self.project_manager.add_members_to_project(project_id, members)
+
+    def see_and_modify_project_details(self):
+        project_id = input("Enter the project ID: ")
+        lead_id = self.get_lead_id()
+        project = self.project_manager.get_project(project_id)
+
+        if project and project['Lead'] == lead_id:
+            print("Current Project Details:")
+            print(f"Project ID: {project['ProjectID']}")
+            print(f"Title: {project['Title']}")
+            print(f"Lead: {project['Lead']}")
+            print(f"Advisor: {project['Advisor']}")
+            print(f"Status: {project['Status']}")
+            print("----------")
+
+            # Your logic to modify project details goes here
+            new_title = input("Enter the new project title: ")
+            new_status = input("Enter the new project status: ")
+            self.project_manager.modify_project_details(project_id, new_title, new_status)
+        else:
+            print("Project not found or you are not the lead of the project.")
+
+    def send_request_messages_to_advisors(self):
+        project_id = input("Enter the project ID: ")
+        advisor_ids = input("Enter advisor IDs (comma-separated): ").split(',')
+        self.project_manager.send_request_messages_to_advisors(project_id, advisor_ids)
+
+    def submit_final_project_report(self):
+        project_id = input("Enter the project ID: ")
+        lead_id = self.get_lead_id()
         project = self.project_manager.get_project(project_id)
         if project and project['Lead'] == lead_id:
             # Your logic to submit the final project report goes here
@@ -518,13 +647,25 @@ class Advisor:
                 return request
         return None
 
+# Instantiate the Database class for both person and login databases
+person_database = Database()
+login_database = Database()
+
+# Create instances of the Admin, Login, Persons, and other relevant classes
+admin_instance = Admin(person_database, login_database)
+login_instance = Login()
+persons_instance = Persons()
+# ... Instantiate other classes
+
+# Initialize tables and data
+persons_table, login_table = initializing()
 
 # Instantiate the Project Manager and Faculty instances
 project_manager = Project()
-persons_table, login_table = initializing()
-login_table.add_login('new_person_id', 'new_username', 'new_password', 'new_role')
+project_manager.create_project(project_title="The Sacred Library", lead_id="9898118")
 faculty_instance = Faculty(project_manager)
 advisor_instance = Advisor(project_manager)
+
 # Make calls to the initializing and login functions defined above
 project_id_to_use = 1
 project_id_to_modify = 2
@@ -539,7 +680,6 @@ if val:
     if user_role in roles_from_csv:
         if user_role.lower() == 'admin':
             print("Admin activities")
-            admin_instance = Admin(database_instance)
             admin_instance.manage_database()
             admin_instance.update_tables()
         elif user_role.lower() == 'student' and user_id:
@@ -554,7 +694,7 @@ if val:
         elif user_role.lower() == 'lead':
             print("Lead activities")
             lead = Lead()
-            lead.perform_activities(project_id_to_use, user_id)
+            lead.create_project_and_become_lead()
         elif user_role.lower() == 'faculty':
             print("Faculty activities")
             faculty_instance.see_advisor_requests()
