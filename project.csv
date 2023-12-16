@@ -1,4 +1,2 @@
-projectName,projectID,leadID
-The Sacred Library,1,9898118
-Run The World,2,5662557
-Eternal,3,5687866
+projectName,projectID,leadID,advisorName,status
+The Sacred Library,1,9898118,Arjen,Pending

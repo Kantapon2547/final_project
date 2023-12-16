@@ -109,23 +109,52 @@ class MemberPendingRequest:
 
 
 class Project:
-    def __init__(self, projects_csv_path='project.csv'):
-        self.projects = self.load_projects_from_csv(projects_csv_path)
+    VALID_STATUSES = {'Pending', 'Approved', 'Completed', 'Cancelled'}
 
-    def load_projects_from_csv(self, filename):
+    def __init__(self, projects_csv_path='project.csv'):
+        self.projects_csv_path = projects_csv_path
+        self.projects = self.load_projects_from_csv()
+
+    def load_projects_from_csv(self):
         projects = []
-        with open(filename, newline='', encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile)
-            for row in reader:
-                projects.append(row)
+        try:
+            with open(self.projects_csv_path, 'r', newline='', encoding='utf-8') as csvfile:
+                reader = csv.DictReader(csvfile)
+                for row in reader:
+                    projects.append(row)
+        except FileNotFoundError:
+            print(f"File '{self.projects_csv_path}' not found.")
+        except Exception as e:
+            print(f"Error loading project data from '{self.projects_csv_path}': {e}")
         return projects
 
     def get_project(self, project_id):
         for project in self.projects:
             if project.get('projectID') == str(project_id):
                 return project
-
         return None
+
+    def modify_project_details(self, project_id, new_title, new_status):
+        for project in self.projects:
+            if project['projectID'] == str(project_id):
+                project['projectName'] = new_title
+                project['status'] = new_status
+                print(f"Project details modified successfully.")
+                self.save_projects_to_csv()  # Save changes to CSV
+                return
+
+        print(f"Project with ID {project_id} not found.")
+
+    def save_projects_to_csv(self):
+        try:
+            with open(self.projects_csv_path, 'w', newline='', encoding='utf-8') as csvfile:
+                fieldnames = ['projectName', 'projectID', 'leadID', 'advisorName', 'status']
+                writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(self.projects)
+                print(f"Projects saved to '{self.projects_csv_path}' successfully.")
+        except Exception as e:
+            print(f"Error saving projects to '{self.projects_csv_path}': {e}")
 
 
 class Admin:
@@ -213,15 +242,23 @@ class Student:
         if project_details:
             print(f"Project ID: {project_details.get('projectID', 'not available')}")
             print(f"Title: {project_details.get('projectName', 'not available')}")
-            print(f"Lead: {project_details.get('leadID', 'not available')}")
-            # Add other attributes as needed
+            print(f"Lead ID: {project_details.get('leadID', 'not available')}")
+
+            # Check if 'advisorName' is present in project_details
+            if 'advisorName' in project_details:
+                advisor_name = project_details['advisorName']
+                print(f"Advisor: {advisor_name}")
+
+            if 'status' in project_details:
+                status = project_details['status']
+                print(f"Status: {status}")
+
             print("----------")
         else:
             print(f"Project with ID {project_id} not found.")
 
     def modify_project_details(self, project_id, new_title, new_status):
         self.project_manager.modify_project_details(project_id, new_title, new_status)
-        print("Project details modified successfully.")
 
     def view_member_requests(self, project_id):
         member_requests = self.project_manager.get_member_requests(project_id)
@@ -242,9 +279,15 @@ class Student:
             choice = input("Enter your choice (1-5): ")
 
             if choice == '1':
-                self.view_project_details(project_id)
+                # Check if the student is a lead, and if yes, show project details automatically
+                if self.is_lead(student_id):
+                    self.view_project_details(project_id)
+                else:
+                    self.view_project_details(project_id)
             elif choice == '2':
-                self.modify_project_details(project_id)
+                new_title = input("Enter the new project title: ")
+                new_status = input("Enter the new project status: ")
+                self.modify_project_details(project_id, new_title, new_status)
             elif choice == '3':
                 self.view_member_requests(project_id)
             elif choice == '4':
@@ -255,53 +298,15 @@ class Student:
             else:
                 print("Invalid choice. Please enter a number between 1 and 5.")
 
-    def send_member_request(self, project_id, project_title, lead_id):
-        # Implement logic to send member requests based on the provided information
-        # This might involve updating the project database or sending notifications
-        print(f"Request sent to {lead_id} for project '{project_title}' with ID {project_id}.")
+    def is_lead(self, student_id):
+        lead_ids = ['9898118']
+        return student_id in lead_ids
 
 
 class Lead:
     def __init__(self, login_data):
         self.project_manager = Project()
         self.login_data = login_data
-
-    # def create_project_and_become_lead(self, project_title, student_id):
-    #     # Deny all existing member requests
-    #     for request in self.project_manager.member_request:
-    #         if request.project_id not in self.project_manager.project_table:
-    #             self.project_manager.member_request.remove(request)
-    #             print(f"Existing member request for Project {request.project_id} denied.")
-    #
-    #     # Create a new project
-    #     self.project_manager.create_project(project_title, student_id)
-    #
-    #     # Add the student as the lead
-    #     project_id = len(self.project_manager.project_table)
-    #     project = self.project_manager.get_project(project_id)
-    #     project['Lead'] = student_id
-    #     print(f"New project created: {project_title}. {student_id} is the lead.")
-    #
-    #     # Update project data in the CSV file
-    #     self.update_project_csv(project_id, project_title, student_id)
-    #
-    # def update_project_csv(self, project_id, project_title, student_id):
-    #     # Assuming you have a method to read data from the CSV file
-    #     project_data = self.read_data_from_csv('project.csv')
-    #
-    #     if project_data is None:
-    #         print("Error reading data from 'project.csv'.")
-    #         return
-    #
-    #     # Update the project name and lead ID
-    #     for entry in project_data:
-    #         if 'ProjectID' in entry and entry['ProjectID'] == str(project_id):
-    #             entry['Title'] = project_title
-    #             entry['Lead'] = student_id
-    #
-    #     # Assuming you have a method to write data to the CSV file
-    #     self.write_data_to_csv('project.csv', project_data)
-    #     print("Updated Project Data:", project_data)
 
     def get_lead_id(self):
         username = input("Enter your username: ")
