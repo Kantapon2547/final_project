@@ -162,6 +162,7 @@ class Project:
         except Exception as e:
             print(f"Error saving projects to '{self.projects_csv_path}': {e}")
 
+
 class Admin:
     def __init__(self, person_database_instance, login_database_instance):
         self.person_database_instance = person_database_instance
@@ -276,49 +277,14 @@ class Student:
     def modify_project_details(self, project_id, new_title, new_status):
         self.project_manager.modify_project_details(project_id, new_title, new_status)
 
-    def is_lead(self, student_id):
+    def is_only_student(self, student_id):
         lead_ids = ['Lionel.M', '9898118']
-        return student_id in lead_ids
+        member_ids = ['5662557', 'Manuel.N', 'Robert.L', '5687866']
+        return student_id not in lead_ids or student_id not in member_ids
 
-    def perform_activities(self, project_id, student_id):
-        if self.is_lead(student_id):
-            while True:
-                print("1. View Project Details")
-                print("2. Modify Project Details")
-                print("3. Send Advisor Requests")
-                print("4. Send Member Requests")
-                print("5. Exit")
-
-                choice = input("Enter your choice (1-5): ")
-
-                if choice == '1':
-                    # Check if the student is a lead, and if yes, show project details automatically
-                    if self.is_lead(student_id):
-                        self.view_project_details(project_id)
-                    else:
-                        self.view_project_details(project_id)
-                elif choice == '2':
-                    new_title = input("Enter the new project title: ")
-                    new_status = input("Enter the new project status: ")
-                    self.modify_project_details(project_id, new_title, new_status)
-                elif choice == '3':
-                    if self.is_lead(student_id):
-                        lead_instance = Lead(self.login_data)
-                        lead_instance.send_advisor_requests(project_id, self)
-                    else:
-                        print("You are not authorized to send advisor requests.")
-                elif choice == '4':
-                    if self.is_lead(student_id):
-                        lead_instance = Lead(self.login_data)
-                        lead_instance.add_members_to_project(project_id, self)
-                    else:
-                        print("You are not authorized to send member requests.")
-                elif choice == '5':
-                    exit_program()
-                else:
-                    print("Invalid choice. Please enter a number between 1 and 5.")
-        else:
-            print("You are not allowed to perform activities for the leader role")
+    def perform_activities(self, student_id):
+        if self.is_only_student(student_id):
+            print("You are not allowed to perform activities for the leader or member role")
 
     def save_member_request_to_csv(self, request):
         try:
@@ -368,6 +334,10 @@ class Student:
 class Lead(Student):
     def __init__(self, login_data):
         super().__init__(login_data)
+
+    def is_lead(self, student_id):
+        lead_ids = ['Lionel.M', '9898118']
+        return student_id in lead_ids
 
     def get_lead_id(self):
         username = input("Enter your username: ")
@@ -433,36 +403,74 @@ class Lead(Student):
         else:
             print("Project not found or you are not the lead of the project.")
 
-class Member:
+
+class Member(Student):
     def __init__(self, user_id, project_manager):
+        super().__init__(login_data)
         self.user_id = user_id
         self.project_manager = project_manager
 
     def view_project_details(self, project_id):
         project_details = self.project_manager.get_project(project_id)
-
+        print("----------")
+        print("View Project Details:")
         if project_details:
-            print("View Project Details:")
-            if self.is_project_member(project_details):
-                self.print_project_details(project_details)
-            else:
-                print("You are not allowed to view project details.")
+            print(f"Project ID: {project_details.get('projectID', 'not available')}")
+            print(f"Title: {project_details.get('projectName', 'not available')}")
+            print(f"Lead ID: {project_details.get('leadID', 'not available')}")
+
+            # Print 'advisorName' if present
+            advisor_name = project_details.get('advisorName')
+            if advisor_name is not None:
+                print(f"Advisor: {advisor_name}")
+
+            # Print 'member1' if present
+            member1 = project_details.get('member1')
+            if member1 is not None:
+                print(f"Member1: {member1}")
+
+            # Print 'member2' if present
+            member2 = project_details.get('member2')
+            if member2 is not None:
+                print(f"Member2: {member2}")
+
+            # Print 'status' if present
+            status = project_details.get('status')
+            if status is not None:
+                print(f"Status: {status}")
+
+            print("----------")
         else:
             print(f"Project with ID {project_id} not found.")
 
-    def modify_project_details(self, project_id, new_title=None, new_status=None):
-        project = self.project_manager.get_project(project_id)
-        if project and self.is_project_member(project):
-            if new_title:
-                project['Title'] = new_title
-            if new_status:
-                project['Status'] = new_status
-            print(f"Project details modified successfully.")
-        else:
-            print("Either the project does not exist or you do not have the permission to modify it.")
+    def modify_project_details(self, project_id, new_title, new_status):
+        self.project_manager.modify_project_details(project_id, new_title, new_status)
 
-    def is_project_member(self, project_details):
-        return self.user_id in [project_details.get('Member1'), project_details.get('Member2')]
+    def is_project_member(self, student_id):
+        member_ids = ['5662557', 'Manuel.N', 'Robert.L', '5687866']
+        return student_id in member_ids
+
+    def perform_member_activities(self, project_id, student_id):
+        if self.is_project_member(student_id):
+            while True:
+                print("1. View Project Details")
+                print("2. Modify Project Details")
+                print("3. Exit")
+
+                choice = input("Enter your choice (1-3): ")
+
+                if choice == '1':
+                    self.view_project_details(project_id)
+                elif choice == '2':
+                    new_title = input("Enter the new project title: ")
+                    new_status = input("Enter the new project status: ")
+                    self.modify_project_details(project_id, new_title, new_status)
+                elif choice == '3':
+                    break
+                else:
+                    print("Invalid choice. Please enter a number between 1 and 3.")
+        else:
+            print("You are not a member of this project")
 
     def print_project_details(self, project_details):
         print(f"Project ID: {project_details.get('ProjectID', 'not available')}")
@@ -483,7 +491,7 @@ class Faculty:
         for request in self.advisor_requests:
             print(f"Project ID: {request.project_id}, Request From: {request.to_be_advisor}")
 
-    def deny_advisor_request(self, project_id, faculty_id):
+    def deny_advisor_role(self, project_id, faculty_id):
         request = self.find_advisor_request(project_id, faculty_id)
         if request:
             self.advisor_requests.remove(request)
@@ -493,20 +501,37 @@ class Faculty:
 
     def see_all_projects(self):
         print("All Projects:")
-        for project in self.project_manager.project_table:
-            print(f"Project ID: {project['ProjectID']}")
-            print(f"Title: {project['Title']}")
-            print(f"Lead: {project['Lead']}")
-            print(f"Advisor: {project['Advisor']}")
-            print(f"Status: {project['Status']}")
+        for project in self.project_manager.projects:
+            print(f"Project ID: {project['projectID']}")
+            print(f"Title: {project['projectName']}")
+            print(f"Lead: {project['leadID']}")
+            print(f"Advisor: {project['advisorName']}")
+            print(f"Status: {project['status']}")
             print("----------")
 
     def evaluate_projects(self):
         print("Evaluating Projects:")
-        for project in self.project_manager.project_table:
-            # Your evaluation logic goes here
-            # You can print, store evaluations, or perform any specific actions based on your requirements
-            print(f"Evaluating Project {project['ProjectID']} - {project['Title']}")
+        for project in self.project_manager.projects:
+            self.print_project_details(project)  # Print project details
+
+            # Get evaluation input from the advisor
+            evaluation = input("Enter your evaluation for this project: ")
+
+            # Store or process the evaluation as needed
+            # You can add logic here to store evaluations in a database or perform other actions
+
+            print(f"Evaluation for Project {project['projectID']} - {project['projectName']} recorded.")
+            print("----------")
+
+    def print_project_details(self, project):
+        # Define how you want to print project details
+        # For example, you can print project details in a specific format
+        print(f"Project ID: {project['projectID']}")
+        print(f"Title: {project['projectName']}")
+        print(f"Lead: {project['leadID']}")
+        print(f"Advisor: {project['advisorName']}")
+        print(f"Status: {project['status']}")
+        print("----------")
 
     def find_advisor_request(self, project_id, faculty_id):
         for request in self.advisor_requests:
@@ -515,65 +540,96 @@ class Faculty:
         return None
 
 
-class Advisor:
+class AdvisorRequest:
+    def __init__(self, project_id, status):
+        self.project_id = project_id
+        self.status = status
+
+
+class Advisor(Faculty):
     def __init__(self, project_manager):
-        self.project_manager = project_manager
-        self.advisor_requests = []
+        super().__init__(project_manager)
+        self.advisor_requests = self.load_advisor_requests_from_csv('advisor_pending_request.csv')
+
+    def load_advisor_requests_from_csv(self, filename):
+        requests = []
+        with open(filename, 'r') as file:
+            reader = csv.DictReader(file)
+            for row in reader:
+                request = AdvisorRequest(
+                    project_id=row['ID'],
+                    status=row['status']
+                )
+                requests.append(request)
+        return requests
+
+    def save_advisor_requests_to_csv(self, filename):
+        with open(filename, 'w', newline='') as file:
+            fieldnames = ['project_id', 'status']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for request in self.advisor_requests:
+                writer.writerow({
+                        'project_id': request.project_id,
+                        'status': request.status
+                })
 
     def see_advisor_requests(self):
         print("Advisor Requests:")
         for request in self.advisor_requests:
-            print(f"Project ID: {request.project_id}, Request From: {request.to_be_advisor}")
+            print(f"Project ID: {request.project_id}, Status: {request.status}")
 
-    def accept_advisor_request(self, project_id, faculty_id):
-        request = self.find_advisor_request(project_id, faculty_id)
+    def accept_advisor_request(self, project_id):
+        request = self.find_advisor_request(project_id)
         if request:
-            # You can add more logic here if needed
-            self.advisor_requests.remove(request)
-            print(f"Accepting advisor request for Project {project_id} from Faculty {faculty_id}.")
+            # Your logic for accepting the advisor request goes here
+            request.status = 'accepted'
+            self.save_advisor_requests_to_csv('advisor_pending_request.csv')
+            print(f"Accepting advisor request for Project {project_id}.")
         else:
             print("Advisor request not found.")
 
-    def deny_advisor_request(self, project_id, faculty_id):
-        request = self.find_advisor_request(project_id, faculty_id)
+    def deny_advisor_request(self, project_id):
+        request = self.find_advisor_request(project_id)
         if request:
-            # You can add more logic here if needed
-            self.advisor_requests.remove(request)
-            print(f"Denying advisor request for Project {project_id} from Faculty {faculty_id}.")
+            request.status = 'denied'
+            self.save_advisor_requests_to_csv('advisor_pending_request.csv')
+            print(f"Denying advisor request for Project {project_id}.")
         else:
             print("Advisor request not found.")
 
     def see_all_projects(self):
         print("All Projects:")
-        for project in self.project_manager.project_table:
-            print(f"Project ID: {project['ProjectID']}")
-            print(f"Title: {project['Title']}")
-            print(f"Lead: {project['Lead']}")
-            print(f"Advisor: {project['Advisor']}")
-            print(f"Status: {project['Status']}")
+        for project in self.project_manager.projects:
+            print(f"Project ID: {project['projectID']}")
+            print(f"Title: {project['projectName']}")
+            print(f"Lead: {project['leadID']}")
+            print(f"Advisor: {project['advisorName']}")
+            print(f"Status: {project['status']}")
             print("----------")
 
     def evaluate_projects(self):
         print("Evaluating Projects:")
-        for project in self.project_manager.project_table:
+        for project in self.project_manager.projects:
             # Your evaluation logic goes here
             # You can print, store evaluations, or perform any specific actions based on your requirements
-            print(f"Evaluating Project {project['ProjectID']} - {project['Title']}")
+            print(f"Evaluating Project {project['projectID']} - {project['projectName']}")
 
     def approve_project(self, project_id):
         project = self.project_manager.get_project(project_id)
         if project:
             # Your approval logic goes here
             # You can update the project status or perform any other relevant actions
-            print(f"Approving Project {project_id} - {project['Title']}")
+            print(f"Approving Project {project_id} - {project['projectName']}")
         else:
             print("Project not found.")
 
-    def find_advisor_request(self, project_id, faculty_id):
+    def find_advisor_request(self, project_id):
         for request in self.advisor_requests:
-            if request.project_id == project_id and request.to_be_advisor == faculty_id:
+            if request.project_id == project_id:
                 return request
         return None
+
 
 # Instantiate the Database class for both person and login databases
 person_database = Database()
@@ -592,8 +648,6 @@ persons_table, login_table = initializing()
 
 # Instantiate the Project Manager and Faculty instances
 project_manager = Project('project.csv')
-faculty_instance = Faculty(project_manager)
-advisor_instance = Advisor(project_manager)
 
 # Make calls to the initializing and login functions defined above
 project_id_to_use = 1
@@ -614,8 +668,7 @@ if val:
         elif user_role.lower() == 'student' and user_id:
             print("Student activities")
             student = Student(login_table)
-            project_id_to_view = 1
-            student.view_project_details(project_id_to_view)
+            student.perform_activities(project_id_to_use)
         elif user_role.lower() == 'leader' and user_id:
             print("Lead activities")
             lead = Lead(login_data)  # Assuming login_data is defined
@@ -624,24 +677,25 @@ if val:
             lead.submit_final_project_report()
         elif user_role.lower() == 'member' and user_id:
             print("Member activities")
-            member_instance = Member(user_id, project_manager)
-            member_instance.view_project_details()
-            member_instance.modify_project_details(project_id_to_modify, new_title="New Title",
-                                                   new_status="New Status")
-        elif user_role.lower() == 'faculty':
+            member = Member(user_id, project_manager)
+            project_id_to_use = 1
+            member.perform_member_activities(project_id_to_use, user_id)
+        elif user_role.lower() == 'faculty' and user_id:
             print("Faculty activities")
-            faculty_instance.see_advisor_requests()
-            faculty_instance.deny_advisor_request(project_id_to_deny, 'advisor_id_here')
-            faculty_instance.see_all_projects()
-            faculty_instance.evaluate_projects()
-        elif user_role.lower() == 'advisor':
+            faculty = Faculty(project_manager)
+            faculty.see_advisor_requests()  # Added this line to see requests to be an advisor
+            faculty.deny_advisor_role(project_id_to_deny, 'advisor_id_here')  # Updated method name
+            faculty.see_all_projects()
+            faculty.evaluate_projects()
+        elif user_role.lower() == 'advisor' and user_id:
             print("Advisor activities")
-            advisor_instance.see_advisor_requests()
-            advisor_instance.accept_advisor_request(project_id_to_use, 'faculty_id_here')
-            advisor_instance.deny_advisor_request(project_id_to_deny, 'faculty_id_here')
-            advisor_instance.see_all_projects()
-            advisor_instance.evaluate_projects()
-            advisor_instance.approve_project(project_id_to_use)
+            advisor = Advisor(project_manager)
+            advisor.see_advisor_requests()
+            advisor.accept_advisor_request(project_id_to_use)
+            advisor.deny_advisor_request(project_id_to_deny)
+            advisor.see_all_projects()
+            advisor.evaluate_projects()
+            advisor.approve_project(project_id_to_use)
     else:
         print("Invalid role. Please check your user data.")
 else:
