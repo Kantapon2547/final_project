@@ -1,4 +1,5 @@
 import csv
+import os
 
 
 class CsvReader:
@@ -7,9 +8,9 @@ class CsvReader:
 
     def read_csv(self):
         result_data = []
-        for file_paths in self.file_paths:
+        for file_path in self.file_paths:
             try:
-                with open(file_paths) as csv_file:
+                with open(file_path) as csv_file:
                     rows = csv.DictReader(csv_file)
                     for row in rows:
                         result_data.append(dict(row))
@@ -20,31 +21,41 @@ class CsvReader:
 
 class Database:
     def __init__(self):
+        # Initialize your database or any other setup
         self.tables = {}
 
-    def add_table(self, table, table_instances):
-        self.tables[table] = table_instances
+    def load_data_from_csv(self, table_name, filename):
+        with open(filename, 'r') as csvfile:
+            reader = csv.DictReader(csvfile)
+            data = [row for row in reader if any(row.values())]
 
-    def get_table(self, table):
-        return self.tables.get(table)
+        print(f"Loaded data for {table_name}:")
+        for row in data:
+            print(row)
 
-    def create_table(self, table):
-        new_table = Table(name=table)
-        self.add_table(table, new_table)
+        self.tables[table_name] = data
 
-    def update_table(self, table, data):
-        tables = self.get_table(table)
-        if tables:
-            tables.update(data)
-        else:
-            return None
+    def create_table(self, table, columns):
+        self.tables[table] = [{col: None for col in columns}]
 
     def insert_data(self, table, data):
-        table = self.get_table(table)
-        if table:
-            table.insert(data)
-        else:
-            return None
+        if table not in self.tables:
+            self.create_table(table, data.keys())
+
+        self.tables[table].append(data)
+
+    def get_columns_for_table(self, table):
+        # Implement the logic to get columns for the given table
+        # For example, you might retrieve columns from a metadata source
+        # Replace this with your actual logic to get columns
+        return []
+
+    def update_table(self, table_name, condition, new_data):
+        for row in self.tables.get(table_name, []):
+            if all(row.get(key) == value for key, value in condition.items()):
+                print(f"Updating row: {row}")
+                row.update(new_data)
+                print(f"Updated row: {row}")
 
 
 class Table:
@@ -57,7 +68,7 @@ class Table:
 
     def update(self, entry_id, key, new_value):
         for entry in self.entries:
-            if entry.get('ID') == entry_id:
+            if entry['ID'] == entry_id:
                 entry[key] = new_value
                 break
 
@@ -71,21 +82,16 @@ csv_data = csv_reader.read_csv()
 database = Database()
 
 for file_path in csv_file_paths:
-    table_name = file_path.split('.')[0]  # Extract table name from file path
-    table_instance = Table(name=table_name)
-    database.add_table(table_name, table_instance)
-
+    table_name = os.path.splitext(os.path.basename(file_path))[0]  # Extract table name from file path
+    database.create_table(table_name, [])  # No columns specified here
 
 # Insert data into the tables
 for entry_data in csv_data:
     table_name_data = entry_data['ID'].split('_')[0]  # Extract table name from ID
     database.insert_data(table_name_data, entry_data)
 
-# Example update
-table_to_update = 'persons'
+# Example update'
 entry_id_to_update = 'some_id'
-key_to_update = 'name'
-value_to_update = 'John Doe'
+update_successful = database.update_table('login', {'ID': entry_id_to_update}, {'role': 'student'})
 
-# Assuming 'ID' is the key to identify entries
-update_successful = database.tables[table_to_update].update(entry_id_to_update, key_to_update, value_to_update)
+
