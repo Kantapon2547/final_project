@@ -18,7 +18,7 @@
 |---------|----------------------------------|-----------------------------------------|-----------------------|
 | Admin   | Manage Database                  | `Admin.manage_database()`               | 90%                   |
 | Student | Perform Activities               | `Student.perform_activities()`          | 100%                  |
-| Lead    | Perform Lead Activities           | `Lead.perform_lead_activities()`        | 100%                  |
+| Lead    | Perform Lead Activities           | `Lead.perform_lead_activities()`        | 90%                   |
 | Member  | Perform Member Activities         | `Member.perform_member_activities()`    | 100%                  |
 | Faculty | See Advisor Requests              | `Faculty.see_advisor_requests()`        | 100%                  |
 | Advisor | See Advisor Requests, Accept/Deny Requests | `Advisor.see_advisor_requests()`, `Advisor.accept_or_deny_advisor_request()` | 100%                  |
