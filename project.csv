@@ -1,2 +1,2 @@
-projectName,projectID,leadID,member1,member2,advisorName,status
-The Sacred Library,1,9898118,5662557,5687866,Arjen,Pending
+projectID,projectName,leadID,member1,member2,advisorName,status,comment
+1,The Sacred Library,9898118,5662557,5687866,Arjen,Pending,Good
