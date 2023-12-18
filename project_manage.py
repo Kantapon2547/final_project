@@ -52,9 +52,9 @@ def initializing():
         person_table.add_person(person)
 
     login_table_instance = Login()
-    login_data = CsvReader().read_csv('login.csv')
+    logins_data = CsvReader().read_csv('login.csv')
 
-    for login_entry in login_data:
+    for login_entry in logins_data:
         person_id = login_entry['ID']
         username = login_entry['username']
         password = login_entry['password']
@@ -76,7 +76,9 @@ def login(logins_table):
         for entry in logins_table.login_data:
             if entry['username'] == username and entry['password'] == password:
                 result = [entry['person_id'], entry['role']]
+                print("------------------------------------------------------")
                 print(f"Login successful! Welcome User ID: {result[0]}, Role: {result[1]}")
+                print("------------------------------------------------------")
                 return result
 
         print("----------------------------------------------------")
@@ -93,19 +95,19 @@ def exit_program():
 
 
 class AdvisorPendingRequest:
-    def __init__(self, project_id, advisor_id, status='Pending', response=None, response_data=None):
+    def __init__(self, project_id, advisor_id, status='Pending', responses=None, response_data=None):
         self.project_id = project_id
         self.advisor_id = advisor_id
-        self.response = response
+        self.responses = responses
         self.status = status
         self.response_data = response_data
 
 
 class MemberPendingRequest:
-    def __init__(self, project_id, to_be_member, response=None, response_data=None):
+    def __init__(self, project_id, to_be_member, responses=None, response_data=None):
         self.project_id = project_id
         self.to_be_member = to_be_member
-        self.response = response
+        self.responses = responses
         self.response_data = response_data
 
         self.first_name = None
@@ -153,7 +155,8 @@ class Project:
 
     def save_projects_to_csv(self, filename='project.csv'):
         with open(filename, 'w', newline='') as file:
-            fieldnames = ['projectID', 'projectName', 'leadID', 'member1', 'member2', 'advisorName', 'status','comment']
+            fieldnames = ['projectID', 'projectName', 'leadID', 'member1', 'member2', 'advisorName', 'status',
+                          'comment']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
             writer.writeheader()
             for project in self.projects:
@@ -176,7 +179,8 @@ class Admin:
 
     def update_login_data(self):
         person_id = input("Enter person ID: ")
-        new_role = input("Enter new role: ")
+        column_to_update = input("Enter the column to update (username, password, or role): ")
+        new_value = input(f"Enter the new value for {column_to_update}: ")
 
         # Check if 'login' table exists
         if 'login' not in self.login_database_instance.tables:
@@ -187,8 +191,8 @@ class Admin:
         # Create a condition to find the row to update
         condition = {'ID': person_id}
 
-        # Create the new data to update the role
-        data_to_update = {'role': new_role}
+        # Create the new data to update the specified column
+        data_to_update = {column_to_update: new_value}
 
         # Update the 'login' table with the modified data
         self.login_database_instance.update_table('login', condition, data_to_update)
@@ -199,15 +203,18 @@ class Admin:
 
     def update_persons_data(self):
         person_id = input("Enter person ID: ")
-        firstname = input("Enter firstname: ")
-        lastname = input("Enter lastname: ")
-        new_role = input("Enter new type: ")
 
         # Create a condition to find the row to update
         condition = {'ID': person_id}
 
-        # Create the new data to update the role
-        data_to_update = {'first': firstname, 'last': lastname, 'type': new_role}
+        # Prompt user for the column to update
+        column_to_update = input("Enter the column to update (first, last, or type): ").lower()
+
+        # Prompt user for the new value
+        new_value = input(f"Enter the new value for {column_to_update}: ")
+
+        # Create the new data to update the specified column
+        data_to_update = {column_to_update: new_value}
 
         # Update the 'persons' table with the modified data
         self.person_database_instance.update_table('persons', condition, data_to_update)
@@ -217,6 +224,7 @@ class Admin:
         print("Persons data updated successfully.")
 
     def manage_database(self):  # Add this method
+        print("------------------------------------------------------")
         print("Admin is managing the database.")
         action = input("Do you want to update data? : ").lower()
         if action == 'yes':
@@ -236,39 +244,41 @@ class Admin:
         with open(filename, 'w', newline='') as file:
             fieldnames = ['ID', 'username', 'password', 'role']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
 
-            for row in self.login_database_instance.tables.get('login', []):
-                writer.writerow({
-                    'ID': row['ID'],
-                    'username': row['username'],
-                    'password': row['password'],
-                    'role': row['role'],
-                })
+            # Check if 'login' table exists and has data
+            logins_data = self.login_database_instance.tables.get('login', [])
+            if logins_data:
+                writer.writeheader()
+                for row in login_data:
+                    writer.writerow({
+                        'ID': row['ID'],
+                        'username': row['username'],
+                        'password': row['password'],
+                        'role': row['role'],
+                    })
 
     def save_persons_to_csv(self, filename='persons.csv'):
         with open(filename, 'w', newline='') as file:
             fieldnames = ['ID', 'first', 'last', 'type']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
-            writer.writeheader()
-            for row in self.person_database_instance.tables.get('persons', []):
-                writer.writerow({
-                    'ID': row.get('ID', ''),
-                    'first': row.get('first', ''),
-                    'last': row.get('last', ''),
-                    'type': row.get('type', ''),
-                })
 
-    def print_data(self, table_name):
-        print(f"Data in {table_name}:")
-        for row in self.person_database_instance.tables.get(table_name, []):
-            print(row)
+            # Check if 'persons' table exists and has data
+            persons_data = self.person_database_instance.tables.get('persons', [])
+            if persons_data:
+                writer.writeheader()
+                for row in persons_data:
+                    writer.writerow({
+                        'ID': row.get('ID', ''),
+                        'first': row.get('first', ''),
+                        'last': row.get('last', ''),
+                        'type': row.get('type', ''),
+                    })
 
 
 class Student:
-    def __init__(self, login_data):
+    def __init__(self, logins_data):
         self.project_manager = Project()
-        self.login_data = login_data
+        self.logins_data = logins_data
 
     def load_project_data_from_csv(self, filename='project.csv'):
         try:
@@ -318,7 +328,8 @@ class Student:
     def modify_project_details(self, project_id, new_title, new_status):
         self.project_manager.modify_project_details(project_id, new_title, new_status)
 
-    def is_only_student(self, student_id):
+    @staticmethod
+    def is_only_student(student_id):
         lead_ids = ['Lionel.M', '9898118']
         member_ids = ['5662557', 'Manuel.N', 'Robert.L', '5687866']
         return student_id not in lead_ids or student_id not in member_ids
@@ -327,7 +338,8 @@ class Student:
         if self.is_only_student(student_id):
             print("You are not allowed to perform activities for the leader or member role")
 
-    def save_member_request_to_csv(self, request):
+    @staticmethod
+    def save_member_request_to_csv(request):
         try:
             with open('member_pending_request.csv', 'a', newline='', encoding='utf-8') as csvfile:
                 fieldnames = ['ID', 'status']
@@ -345,15 +357,18 @@ class Student:
         except Exception as e:
             print(f"Error saving request to 'member_pending_request.csv': {e}")
 
+    @staticmethod
     def read_member_data_from_id(member_id):
         members_data = CsvReader().read_csv('members.csv')
-        for member in members_data:
-            if member.get('ID') == member_id:
-                return {'firstName': member.get('firstName', 'Unknown'), 'lastName': member.get('lastName', 'Unknown')}
+        for members in members_data:
+            if members.get('ID') == member_id:
+                return {'firstName': members.get('firstName', 'Unknown'),
+                        'lastName': members.get('lastName', 'Unknown')}
 
         return None
 
-    def save_advisor_request_to_csv(self, request):
+    @staticmethod
+    def save_advisor_request_to_csv(request):
         try:
             with open('advisor_pending_request.csv', 'a', newline='', encoding='utf-8') as csvfile:
                 fieldnames = ['ID', 'status']
@@ -373,16 +388,17 @@ class Student:
 
 
 class Lead(Student):
-    def __init__(self, login_data):
-        super().__init__(login_data)
+    def __init__(self, logins_data):
+        super().__init__(logins_data)
 
-    def is_lead(self, student_id):
+    @staticmethod
+    def is_lead(student_id):
         lead_ids = ['Lionel.M', '9898118']
         return student_id in lead_ids
 
     def get_lead_id(self):
         username = input("Enter your username: ")
-        for entry in self.login_data:
+        for entry in self.logins_data:
             if entry['username'] == username and entry['role'] == 'lead':
                 return entry.get('lead_id', None)
         print("Lead ID not found for the given username and role.")
@@ -391,10 +407,11 @@ class Lead(Student):
     def modify_project_details(self, project_id, new_title, new_status):
         self.project_manager.modify_project_details(project_id, new_title, new_status)
 
-    def add_members_to_project(self, project_id, student_instance):
+    @staticmethod
+    def add_members_to_project(project_id, student_instance):
         members = input("Enter member IDs (comma-separated): ").split(',')
         for member_id in members:
-            request = MemberPendingRequest(project_id, member_id, response=None, response_data=None)
+            request = MemberPendingRequest(project_id, member_id, responses=None, response_data=None)
             student_instance.save_member_request_to_csv(request)
 
     def perform_lead_activities(self, project_id, student_id):
@@ -409,7 +426,6 @@ class Lead(Student):
                 choice = input("Enter your choice (1-5): ")
 
                 if choice == '1':
-                    # Check if the student is a lead, and if yes, show project details automatically
                     self.view_project_details(project_id)
                 elif choice == '2':
                     new_title = input("Enter the new project title: ")
@@ -426,8 +442,8 @@ class Lead(Student):
         else:
             print("You are not allowed to perform activities for the leader role")
 
-    def send_advisor_requests(self, project_id, student_instance):
-        # Assuming you have a method to get advisor IDs, replace this with your logic
+    @staticmethod
+    def send_advisor_requests(project_id, student_instance):
         advisor_ids = input("Enter advisor IDs (comma-separated): ").split(',')
 
         for advisor_id in advisor_ids:
@@ -439,17 +455,16 @@ class Lead(Student):
         lead_id = self.get_lead_id()
         project = self.project_manager.get_project(project_id)
         if project and project['Lead'] == lead_id:
-            # Your logic to submit the final project report goes here
             print("Final project report submitted.")
         else:
             print("Project not found or you are not the lead of the project.")
 
 
 class Member(Student):
-    def __init__(self, user_id, project_manager):
+    def __init__(self, users_id, projects_manager):
         super().__init__(login_data)
-        self.user_id = user_id
-        self.project_manager = project_manager
+        self.users_id = users_id
+        self.projects_manager = projects_manager
 
     def view_project_details(self, project_id):
         project_details = self.project_manager.get_project(project_id)
@@ -487,7 +502,8 @@ class Member(Student):
     def modify_project_details(self, project_id, new_title, new_status):
         self.project_manager.modify_project_details(project_id, new_title, new_status)
 
-    def is_project_member(self, student_id):
+    @staticmethod
+    def is_project_member(student_id):
         member_ids = ['5662557', 'Manuel.N', 'Robert.L', '5687866']
         return student_id in member_ids
 
@@ -513,7 +529,8 @@ class Member(Student):
         else:
             print("You are not a member of this project")
 
-    def print_project_details(self, project_details):
+    @staticmethod
+    def print_project_details(project_details):
         print(f"Project ID: {project_details.get('ProjectID', 'not available')}")
         print(f"Title: {project_details.get('Title', 'not available')}")
         print(f"Lead: {project_details.get('Lead', 'not available')}")
@@ -523,8 +540,8 @@ class Member(Student):
 
 
 class Faculty:
-    def __init__(self, project_manager):
-        self.project_manager = project_manager
+    def __init__(self, projects_manager):
+        self.projects_manager = projects_manager
         self.advisor_requests = self.load_advisor_requests_from_csv('advisor_pending_request.csv')
 
     def load_advisor_requests_from_csv(self, filename):
@@ -552,13 +569,24 @@ class Faculty:
         else:
             return None
 
-    def send_advisor_response(self, project_id, response):
+    def save_advisor_requests_to_csv(self, filename='advisor_pending_request.csv'):
+        with open(filename, 'w', newline='') as file:
+            fieldnames = ['ID', 'status']
+            writer = csv.DictWriter(file, fieldnames=fieldnames)
+            writer.writeheader()
+            for request in self.advisor_requests:
+                writer.writerow({
+                    'ID': request.project_id,
+                    'status': request.status
+                })
+
+    def send_advisor_response(self, project_id, responses):
         request = self.find_advisor_request(project_id)
         if request:
-            if response.lower() == 'accept':
+            if responses.lower() == 'accept':
                 request.status = 'accepted'
                 print(f"Accepting advisor request for Project {project_id}.")
-            elif response.lower() == 'deny':
+            elif responses.lower() == 'deny':
                 request.status = 'denied'
                 print(f"Denying advisor request for Project {project_id}.")
             else:
@@ -569,7 +597,7 @@ class Faculty:
 
     def see_all_projects(self):
         print("All Projects:")
-        for project in self.project_manager.projects:
+        for project in self.projects_manager.projects:
             print(f"Project ID: {project['projectID']}")
             print(f"Title: {project['projectName']}")
             print(f"Lead: {project['leadID']}")
@@ -579,16 +607,17 @@ class Faculty:
 
     def evaluate_projects(self):
         print("Evaluating Projects:")
-        for project in self.project_manager.projects:
+        for project in self.projects_manager.projects:
             self.print_project_details(project)
             evaluation = input("Enter your evaluation for this project: ")
             project['comment'] = evaluation  # Add the comment to the project
             print(f"Evaluation for Project {project['projectID']} - {project['projectName']} recorded.")
             print("----------")
 
-        self.project_manager.save_projects_to_csv('project.csv')
+        self.projects_manager.save_projects_to_csv('project.csv')
 
-    def print_project_details(self, project):
+    @staticmethod
+    def print_project_details(project):
         print(f"Project ID: {project['projectID']}")
         print(f"Title: {project['projectName']}")
         print(f"Lead: {project['leadID']}")
@@ -610,8 +639,8 @@ class AdvisorRequest:
 
 
 class Advisor(Faculty):
-    def __init__(self, project_manager):
-        super().__init__(project_manager)
+    def __init__(self, projects_manager):
+        super().__init__(projects_manager)
         self.advisor_requests = self.load_advisor_requests_from_csv('advisor_pending_request.csv')
 
     def load_advisor_requests_from_csv(self, filename):
@@ -626,7 +655,7 @@ class Advisor(Faculty):
                 requests.append(request)
         return requests
 
-    def save_advisor_requests_to_csv(self, filename):
+    def save_advisor_requests_to_csv(self, filename='advisor_pending_request.csv'):
         with open(filename, 'w', newline='') as file:
             fieldnames = ['ID', 'status']
             writer = csv.DictWriter(file, fieldnames=fieldnames)
@@ -643,21 +672,21 @@ class Advisor(Faculty):
                 return request
         return None
 
-    def accept_or_deny_advisor_request(self, project_id, response):
+    def accept_or_deny_advisor_request(self, project_id, responses):
         request = self.find_advisor_request(project_id)
         if request:
-            if response.lower() == 'accept':
+            if responses.lower() == 'accept':
                 # Perform actions for accepting the request
                 request.status = 'accepted'
                 print(f"Accepting advisor request for Project {project_id}.")
 
                 # Update project status in project_manager
-                project = self.project_manager.get_project(project_id)
+                project = self.projects_manager.get_project(project_id)
                 if project:
                     project['status'] = 'Approved'
                 else:
                     print(f"Project with ID {project_id} not found in the project manager.")
-            elif response.lower() == 'deny':
+            elif responses.lower() == 'deny':
                 # Perform actions for denying the request
                 request.status = 'denied'
                 print(f"Denying advisor request for Project {project_id}.")
@@ -665,7 +694,7 @@ class Advisor(Faculty):
                 print("Invalid response. Please enter 'accept' or 'deny'.")
 
     def approve_project(self, project_id):
-        project = self.project_manager.get_project(project_id)
+        project = self.projects_manager.get_project(project_id)
         if project:
             # Perform actions for approving the project
             print(f"Approving Project {project_id} - {project['projectName']}")
@@ -674,7 +703,7 @@ class Advisor(Faculty):
 
     def see_all_projects(self):
         print("All Projects:")
-        for project in self.project_manager.projects:
+        for project in self.projects_manager.projects:
             print(f"Project ID: {project['projectID']}")
             print(f"Title: {project['projectName']}")
             print(f"Lead: {project['leadID']}")
@@ -684,14 +713,14 @@ class Advisor(Faculty):
 
     def evaluate_projects(self):
         print("Evaluating Projects:")
-        for project in self.project_manager.projects:
+        for project in self.projects_manager.projects:
             print(f"Evaluating Project {project['projectID']} - {project['projectName']}")
             evaluation = input("Enter your evaluation for this project: ")
             project['comment'] = evaluation  # Add the comment to the project
             print(f"Evaluation for Project {project['projectID']} - {project['projectName']} recorded.")
             print("----------")
         # Save the updated projects to 'project.csv'
-        self.project_manager.save_projects_to_csv('project.csv')
+        self.projects_manager.save_projects_to_csv('project.csv')
 
 
 # Instantiate the Database class for both person and login databases
